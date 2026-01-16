@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-SG">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR 文字识别测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8eeff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .option-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .result-text {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #333;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+		    width: 100%;
+			resize: vertical;   /* 允许拖拽改变高度；不想要可改成 none */
+			outline: none;
+		}
+		
+		.result-text:focus {
+			border-color: #667eea;
+			box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+		}
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            flex: 1;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #c33;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 OCR 文字识别</h1>
+        <p class="subtitle">支持中英文图片文字识别，上传图片即可开始</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">
+                点击选择文件或拖拽到此处<br>
+                <small>支持 JPG, PNG, TIFF 等格式，最大 10MB</small>
+            </div>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        </div>
+
+        <div class="options">
+            <div class="option-group">
+                <label for="langSelect">识别语言</label>
+                <select id="langSelect">
+                    <option value="ch">中文</option>
+                    <option value="en">英文</option>
+                </select>
+            </div>
+            <div class="option-group">
+                <label for="apiUrl">API 地址</label>
+                <select id="apiUrl">
+                    <option value="http://localhost:8000">本地开发 (localhost:8000)</option>
+                    <option value="http://127.0.0.1:8000">本地开发 (127.0.0.1:8000)</option>
+                    <option value="">自定义...</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn" id="submitBtn" disabled>开始识别</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在识别中，请稍候...</p>
+        </div>
+
+        <div class="result" id="result">
+            <h3>识别结果</h3>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">文本块数</div>
+                    <div class="stat-value" id="textCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">平均置信度</div>
+                    <div class="stat-value" id="confidence">0%</div>
+                </div>
+            </div>
+            <textarea class="result-text" id="resultText" rows="10" spellcheck="false"></textarea>
+            <img id="previewImg" class="preview-img" style="display:none;">
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const resultText = document.getElementById('resultText');
+        const textCount = document.getElementById('textCount');
+        const confidence = document.getElementById('confidence');
+        const langSelect = document.getElementById('langSelect');
+        const apiUrl = document.getElementById('apiUrl');
+        const previewImg = document.getElementById('previewImg');
+
+        let selectedFile = null;
+
+        // 点击上传区域
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件过大，请选择小于 10MB 的文件');
+                return;
+            }
+
+            selectedFile = file;
+            submitBtn.disabled = false;
+            uploadArea.querySelector('.upload-text').innerHTML = 
+                `已选择: <strong>${file.name}</strong><br><small>${(file.size / 1024).toFixed(2)} KB</small>`;
+
+            // 显示预览
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 提交识别
+        submitBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('lang', langSelect.value);
+
+            loading.classList.add('show');
+            result.classList.remove('show');
+            submitBtn.disabled = true;
+
+            try {
+                const baseUrl = apiUrl.value || 'http://localhost:8000';
+                const response = await fetch(`${baseUrl}/ocr`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '识别失败');
+                }
+
+                const data = await response.json();
+                
+                resultText.value = data.full_text || '未识别到文字';
+                textCount.textContent = data.text_count || 0;
+                confidence.textContent = data.avg_confidence 
+                    ? `${(data.avg_confidence * 100).toFixed(1)}%` 
+                    : 'N/A';
+
+                result.classList.add('show');
+
+            } catch (error) {
+                resultText.value = `❌ ${error.message}`;
+                result.classList.add('show');
+            } finally {
+                loading.classList.remove('show');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 自定义API地址
+        apiUrl.addEventListener('change', (e) => {
+            if (e.target.value === '') {
+                const custom = prompt('请输入自定义 API 地址:', 'http://localhost:8000');
+                if (custom) {
+                    const option = document.createElement('option');
+                    option.value = custom;
+                    option.textContent = `自定义 (${custom})`;
+                    option.selected = true;
+                    apiUrl.appendChild(option);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
